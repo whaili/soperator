@@ -6,21 +6,21 @@
 
 ```
 SlurmClusterReconciler.Reconcile()
-├── 获取 SlurmCluster 对象 [cmd/clustercontroller/controller.go:124]
+├── 获取 SlurmCluster 对象 [internal/controller/clustercontroller/reconcile.go:134-144]
 │   └── 从 Kubernetes API 获取集群状态
-├── 设置默认值 [cmd/clustercontroller/reconcile.go:194-215]
+├── 设置默认值 [internal/controller/clustercontroller/reconcile.go:146-149]
 │   └── 为集群对象设置默认配置和状态
-├── 检查删除状态 [cmd/clustercontroller/reconcile.go:176-183]
+├── 检查删除状态 [internal/controller/clustercontroller/reconcile.go:151-154]
 │   └── 如果正在删除，标记为删除中状态
-├── 调用 reconcile 方法 [cmd/clustercontroller/reconcile.go:187]
-│   ├── 设置协调状态 [reconcile.go:194-215]
-│   ├── 构建集群值对象 [reconcile.go:219]
-│   ├── 设置初始条件 [reconcile.go:229-238]
-│   └── 执行协调阶段 [reconcile.go:241-242]
-├── 更新集群状态 [reconcile.go:163-182]
+├── 调用 reconcile 方法 [internal/controller/clustercontroller/reconcile.go:156]
+│   ├── 设置协调状态 [internal/controller/clustercontroller/reconcile.go:194-204]
+│   ├── 构建集群值对象 [internal/controller/clustercontroller/reconcile.go:218-219]
+│   ├── 设置初始条件 [internal/controller/clustercontroller/reconcile.go:224-225]
+│   └── 执行协调阶段 [internal/controller/clustercontroller/reconcile.go:229-267]
+├── 更新集群状态 [internal/controller/clustercontroller/reconcile.go:163-184]
 │   ├── 重试机制确保状态更新成功
 │   └── 使用 client.MergeFrom 进行状态合并
-└── 返回结果 [reconcile.go:647-651]
+└── 返回结果 [internal/controller/clustercontroller/reconcile.go:514-516]
     ├── 返回延迟重新协调
     └── 记录协调完成
 ```
@@ -28,26 +28,26 @@ SlurmClusterReconciler.Reconcile()
 ### 2. 协调阶段调用链 (Reconciliation Phases)
 
 ```
-reconcile() [cmd/clustercontroller/reconcile.go:187]
-├── runWithPhase: ClusterReconciling [reconcile.go:245]
-│   ├── ReconcilePopulateJail [cmd/clustercontroller/populate_job.go:24]
-│   │   ├── 创建 Job [cmd/clustercontroller/populate_job.go:54]
-│   │   ├── 等待 Job 完成 [cmd/clustercontroller/populate_job.go:85]
-│   │   ├── 删除 Job [cmd/clustercontroller/populate_job.go:92]
-│   │   └── 记录完成状态 [cmd/clustercontroller/populate_job.go:101]
-│   ├── ReconcileCommon [cmd/clustercontroller/common.go:24]
+reconcile() [internal/controller/clustercontroller/reconcile.go:187]
+├── runWithPhase: ClusterReconciling [internal/controller/clustercontroller/reconcile.go:229]
+│   ├── ReconcilePopulateJail [internal/controller/clustercontroller/populate_job.go:24]
+│   │   ├── 创建 Job [internal/controller/clustercontroller/populate_job.go:54]
+│   │   ├── 等待 Job 完成 [internal/controller/clustercontroller/populate_job.go:85]
+│   │   ├── 删除 Job [internal/controller/clustercontroller/populate_job.go:92]
+│   │   └── 记录完成状态 [internal/controller/clustercontroller/populate_job.go:101]
+│   ├── ReconcileCommon [internal/controller/clustercontroller/common.go:24]
 │   │   ├── REST JWT Secret [common.go:42]
-│   │   │   ├── 创建密钥 [reconciler/secret.go:37]
-│   │   │   └── 设置控制器引用 [reconciler/secret.go:79]
+│   │   │   ├── 创建密钥 [internal/controller/reconciler/k8s_secret.go:37]
+│   │   │   └── 设置控制器引用 [internal/controller/reconciler/k8s_secret.go:79]
 │   │   ├── Slurm Configs ConfigMap [common.go:60]
-│   │   │   └── 创建配置映射 [reconciler/configmap.go:37]
+│   │   │   └── 创建配置映射 [internal/controller/reconciler/k8s_configmap.go:37]
 │   │   ├── Slurm Configs JailedConfigs [common.go:78]
-│   │   │   └── 创建 Jailed 配置 [reconciler/jailedconfig.go:37]
+│   │   │   └── 创建 Jailed 配置 [internal/controller/reconciler/jailedconfig.go:37]
 │   │   ├── Munge Key Secret [common.go:96]
-│   │   │   └── 创建 Munge 密钥 [reconciler/secret.go:37]
+│   │   │   └── 创建 Munge 密钥 [internal/controller/reconciler/k8s_secret.go:37]
 │   │   └── AppArmor Profiles [common.go:114]
-│   │       └── 创建安全配置 [reconciler/apparmor.go:37]
-│   ├── ReconcileAccounting [cmd/clustercontroller/accounting.go:29]
+│   │       └── 创建安全配置 [internal/controller/reconciler/apparmorprofile.go:37]
+│   ├── ReconcileAccounting [internal/controller/clustercontroller/accounting.go:29]
 │   │   ├── Slurmdbd Configs Secret [accounting.go:49]
 │   │   ├── MariaDB Password Secret [accounting.go:67]
 │   │   ├── MariaDB Root Password Secret [accounting.go:85]
@@ -55,17 +55,17 @@ reconcile() [cmd/clustercontroller/reconcile.go:187]
 │   │   ├── MariaDB Grant [accounting.go:121]
 │   │   ├── MariaDB Database [accounting.go:139]
 │   │   └── Deployment [accounting.go:157]
-│   ├── ReconcileSConfigController [cmd/clustercontroller/sconfigcontroller.go:25]
+│   ├── ReconcileSConfigController [internal/controller/clustercontroller/sconfigcontroller.go:25]
 │   │   ├── ServiceAccount [sconfigcontroller.go:41]
 │   │   ├── Role [sconfigcontroller.go:53]
 │   │   ├── RoleBinding [sconfigcontroller.go:65]
 │   │   └── Deployment [sconfigcontroller.go:77]
-│   ├── ReconcileControllers [cmd/clustercontroller/controller.go:26]
+│   ├── ReconcileControllers [internal/controller/clustercontroller/controller.go:26]
 │   │   ├── Security Limits ConfigMap [controller.go:42]
 │   │   ├── Service [controller.go:59]
 │   │   ├── StatefulSet [controller.go:76]
 │   │   └── DaemonSet [controller.go:93]
-│   ├── ReconcileWorkers [cmd/clustercontroller/worker.go:26]
+│   ├── ReconcileWorkers [internal/controller/clustercontroller/worker.go:26]
 │   │   ├── Sysctl ConfigMap [worker.go:43]
 │   │   ├── SSHD ConfigMap [worker.go:60]
 │   │   ├── SSH Keys Secret [worker.go:77]
@@ -74,7 +74,7 @@ reconcile() [cmd/clustercontroller/reconcile.go:187]
 │   │   ├── Service [worker.go:128]
 │   │   ├── StatefulSet [worker.go:145]
 │   │   └── ServiceAccount [worker.go:179]
-│   ├── ReconcileLogin [cmd/clustercontroller/login.go:26]
+│   ├── ReconcileLogin [internal/controller/clustercontroller/login.go:26]
 │   │   ├── SSHD ConfigMap [login.go:45]
 │   │   ├── SSH Root Public Keys ConfigMap [login.go:62]
 │   │   ├── SSH Keys Secret [login.go:79]
@@ -82,22 +82,22 @@ reconcile() [cmd/clustercontroller/reconcile.go:187]
 │   │   ├── Service [login.go:113]
 │   │   ├── Headless Service [login.go:130]
 │   │   └── StatefulSet [login.go:147]
-│   ├── ReconcileREST [cmd/clustercontroller/rest.go:21]
+│   ├── ReconcileREST [internal/controller/clustercontroller/rest.go:21]
 │   │   ├── Service [rest.go:37]
 │   │   └── Deployment [rest.go:54]
-│   └── ReconcileSoperatorExporter [cmd/clustercontroller/soperator_exporter.go:17]
+│   └── ReconcileSoperatorExporter [internal/controller/clustercontroller/soperator_exporter.go:17]
 │       ├── ServiceAccount [soperator_exporter.go:33]
 │       ├── Role [soperator_exporter.go:45]
 │       ├── RoleBinding [soperator_exporter.go:57]
 │       ├── PodMonitor [soperator_exporter.go:69]
 │       └── Deployment [soperator_exporter.go:81]
-├── runWithPhase: ClusterNotAvailable [reconcile.go:282]
-│   ├── 验证控制器 [reconcile.go:291]
-│   ├── 验证工作节点 [reconcile.go:304]
-│   ├── 验证登录节点 [reconcile.go:317]
-│   ├── 验证会计系统 [reconcile.go:330]
-│   └── 验证 SConfigController [reconcile.go:343]
-└── runWithPhase: ClusterAvailable [reconcile.go:604]
+├── runWithPhase: ClusterNotAvailable [internal/controller/clustercontroller/reconcile.go:277]
+│   ├── 验证控制器 [internal/controller/clustercontroller/reconcile.go:290-300]
+│   ├── 验证工作节点 [internal/controller/clustercontroller/reconcile.go:375-388]
+│   ├── 验证登录节点 [internal/controller/clustercontroller/reconcile.go:418-432]
+│   ├── 验证会计系统 [internal/controller/clustercontroller/reconcile.go:452-487]
+│   └── 验证 SConfigController [internal/controller/clustercontroller/reconcile.go:490-496]
+└── runWithPhase: ClusterAvailable [internal/controller/clustercontroller/reconcile.go:507]
     └── 设置可用状态并返回
 ```
 
@@ -121,8 +121,8 @@ Reconciler.reconcile() [internal/controller/reconciler/reconciler.go:167]
 ├── 调用 patcher 方法 [reconciler.go:117]
 │   ├── Deployment -> DeploymentReconciler.patch() [internal/controller/reconciler/deployment.go:37]
 │   ├── StatefulSet -> StatefulSetReconciler.patch() [internal/controller/reconciler/k8s_statefulset.go:40]
-│   ├── ConfigMap -> ConfigMapReconciler.patch() [internal/controller/reconciler/configmap.go:37]
-│   └── Secret -> SecretReconciler.patch() [internal/controller/reconciler/secret.go:77]
+│   ├── ConfigMap -> ConfigMapReconciler.patch() [internal/controller/reconciler/k8s_configmap.go:37]
+│   └── Secret -> SecretReconciler.patch() [internal/controller/reconciler/k8s_secret.go:77]
 └── EnsureUpdated() [reconciler.go:109]
     ├── 更新依赖版本 [reconciler.go:111]
     ├── 比较依赖版本 [reconciler.go:115]
@@ -188,7 +188,7 @@ SlurmAPIClientsController.Reconcile() [internal/controller/soperatorchecks/slurm
 ### 1. 重试机制分支
 
 #### 状态更新重试
-**位置**: `cmd/clustercontroller/reconcile.go:163-182`
+**位置**: `internal/controller/clustercontroller/reconcile.go:163-182`
 ```go
 statusErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
     cluster := &slurmv1.SlurmCluster{}
@@ -217,7 +217,7 @@ func DefaultHTTPClient() *http.Client {
 ### 2. 条件判断分支
 
 #### 删除状态检查
-**位置**: `cmd/clustercontroller/reconcile.go:176-183`
+**位置**: `internal/controller/clustercontroller/reconcile.go:176-183`
 ```go
 if cluster.GetDeletionTimestamp() != nil {
     if err := r.patchStatus(ctx, req, slurmv1.ClusterDeleting); err != nil {
@@ -247,7 +247,7 @@ if !apierrors.IsNotFound(err) {
 ### 3. 并发控制分支
 
 #### 重新协调状态管理
-**位置**: `cmd/clustercontroller/reconcile.go:194-215`
+**位置**: `internal/controller/clustercontroller/reconcile.go:194-215`
 ```go
 if state.ReconciliationState.Present(kind, key) {
     logger.V(1).Info("Reconciliation skipped, as object is already present in reconciliation state")
@@ -446,9 +446,9 @@ sequenceDiagram
 
 | 函数 | 作用 | 文件路径 |
 |------|------|----------|
-| `Reconcile()` | 主协调入口，处理集群生命周期 | `cmd/clustercontroller/controller.go:124` |
-| `reconcile()` | 核心协调逻辑，管理所有组件协调 | `cmd/clustercontroller/reconcile.go:187` |
-| `runWithPhase()` | 按阶段执行协调（Reconciling/Available） | `cmd/clustercontroller/reconcile.go:604` |
+| `Reconcile()` | 主协调入口，处理集群生命周期 | `internal/controller/clustercontroller/reconcile.go:125` |
+| `reconcile()` | 核心协调逻辑，管理所有组件协调 | `internal/controller/clustercontroller/reconcile.go:187` |
+| `runWithPhase()` | 按阶段执行协调（Reconciling/Available） | `internal/controller/clustercontroller/reconcile.go:604` |
 
 ### 2. 资源协调函数
 

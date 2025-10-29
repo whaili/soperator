@@ -5,7 +5,7 @@
 本项目包含 5 个独立的 Go 程序，每个都有自己独立的 `main()` 函数：
 
 ### 主操作器 (Main Operator)
-- **文件**: [cmd/main.go](cmd/main.go:95)
+- **文件**: [cmd/main.go](cmd/main.go:117)
 - **用途**: 主要的 Slurm 操作器，管理整个集群生命周期
 - **启动命令**: `make run` 或 `go run cmd/main.go`
 
